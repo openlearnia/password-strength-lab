@@ -1,9 +1,7 @@
 name: Deploy Password Strength Lab
 
-# Required GitHub secrets (org-level or repo-level):
-#   CF_API_TOKEN                    - API token with Cloudflare Pages Edit permission
-#   CF_ACCOUNT_ID                   - Cloudflare account ID
-#   CF_PAGES_PASSWORD_STRENGTH_LAB  - Cloudflare Pages project name for this app
+# Required GitHub org secrets: CF_API_TOKEN, CF_ACCOUNT_ID
+# Pages project name is set in wrangler.jsonc at repo root.
 
 on:
   push:
@@ -25,4 +23,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ secrets.CF_PAGES_PASSWORD_STRENGTH_LAB }}
+          command: pages deploy
