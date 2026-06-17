@@ -1,7 +1,7 @@
 name: Deploy Password Strength Lab
 
 # Required GitHub org secrets: CF_API_TOKEN, CF_ACCOUNT_ID
-# Pages project name is set in wrangler.jsonc at repo root.
+# Pages project name is set in wrangler.toml at repo root.
 
 on:
   push:
@@ -23,4 +23,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          wranglerVersion: "4"
           command: pages deploy
