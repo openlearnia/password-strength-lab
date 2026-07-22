@@ -1,143 +1,49 @@
 import { useMemo, useState } from 'react'
 import { AppChrome } from './chrome/AppChrome'
 import { relatedExcept } from './chrome/relatedTools'
+import { analyzePassword, generatePassword } from './lib/analyzePassword'
+import { ratingToMeterColor } from './lib/meterColor'
 import './App.css'
-
-type PasswordCheck = {
-  label: string
-  passed: boolean
-}
-
-type PasswordAnalysis = {
-  score: number
-  rating: string
-  checks: PasswordCheck[]
-  suggestions: string[]
-}
-
-const COMMON_TERMS = [
-  'password',
-  '1234',
-  'qwerty',
-  'admin',
-  'welcome',
-  'letmein',
-  'iloveyou',
-  'abc123',
-  'passw0rd',
-]
-
-const SYMBOLS = '!@#$%^&*()-_=+[]{};:,.<>?'
-
-function generateStrongPassword(length = 16): string {
-  const lower = 'abcdefghijklmnopqrstuvwxyz'
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const numbers = '0123456789'
-  const all = `${lower}${upper}${numbers}${SYMBOLS}`
-
-  const pick = (source: string) =>
-    source[crypto.getRandomValues(new Uint32Array(1))[0] % source.length]
-
-  const chars = [pick(lower), pick(upper), pick(numbers), pick(SYMBOLS)]
-
-  while (chars.length < length) {
-    chars.push(pick(all))
-  }
-
-  for (let i = chars.length - 1; i > 0; i -= 1) {
-    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1)
-    ;[chars[i], chars[j]] = [chars[j], chars[i]]
-  }
-
-  return chars.join('')
-}
-
-function analyzePassword(password: string): PasswordAnalysis {
-  if (!password) {
-    return {
-      score: 0,
-      rating: 'Very weak',
-      checks: [
-        { label: 'At least 12 characters', passed: false },
-        { label: 'Contains lowercase letter', passed: false },
-        { label: 'Contains uppercase letter', passed: false },
-        { label: 'Contains number', passed: false },
-        { label: 'Contains symbol', passed: false },
-        { label: 'Avoids repeated character runs', passed: false },
-        { label: 'Avoids common patterns/words', passed: false },
-      ],
-      suggestions: [
-        'Use at least 12-16 characters.',
-        'Mix uppercase, lowercase, numbers, and symbols.',
-      ],
-    }
-  }
-
-  const hasLength = password.length >= 12
-  const hasLower = /[a-z]/.test(password)
-  const hasUpper = /[A-Z]/.test(password)
-  const hasNumber = /\d/.test(password)
-  const hasSymbol = /[^A-Za-z0-9]/.test(password)
-  const hasRepeatedRun = /(.)\1{2,}/.test(password)
-  const hasRepeatedChunk = /(..+)\1/.test(password)
-  const lower = password.toLowerCase()
-  const hasCommonTerm = COMMON_TERMS.some((term) => lower.includes(term))
-  const hasCommonSequence =
-    /0123|1234|2345|3456|4567|5678|6789|abcd|qwer|asdf|zxcv/i.test(password)
-
-  const avoidsRepeats = !hasRepeatedRun && !hasRepeatedChunk
-  const avoidsCommon = !hasCommonTerm && !hasCommonSequence
-
-  let score = 0
-  if (hasLength) score += 25
-  if (hasLower) score += 10
-  if (hasUpper) score += 10
-  if (hasNumber) score += 10
-  if (hasSymbol) score += 15
-  if (avoidsRepeats) score += 15
-  if (avoidsCommon) score += 15
-  if (password.length >= 16) score += 10
-
-  score = Math.min(score, 100)
-
-  const checks: PasswordCheck[] = [
-    { label: 'At least 12 characters', passed: hasLength },
-    { label: 'Contains lowercase letter', passed: hasLower },
-    { label: 'Contains uppercase letter', passed: hasUpper },
-    { label: 'Contains number', passed: hasNumber },
-    { label: 'Contains symbol', passed: hasSymbol },
-    { label: 'Avoids repeated character runs', passed: avoidsRepeats },
-    { label: 'Avoids common patterns/words', passed: avoidsCommon },
-  ]
-
-  const suggestions: string[] = []
-  if (!hasLength) suggestions.push('Increase length to at least 12 characters.')
-  if (!hasLower) suggestions.push('Add lowercase letters.')
-  if (!hasUpper) suggestions.push('Add uppercase letters.')
-  if (!hasNumber) suggestions.push('Include one or more numbers.')
-  if (!hasSymbol) suggestions.push('Add symbols like !, #, or @.')
-  if (!avoidsRepeats) suggestions.push('Avoid repeated blocks like aaa or xyzxyz.')
-  if (!avoidsCommon)
-    suggestions.push('Avoid common words, keyboard patterns, and sequences.')
-  if (hasLength && password.length < 16)
-    suggestions.push('Consider 16+ characters for stronger protection.')
-  if (suggestions.length === 0)
-    suggestions.push('Great password. Store it in a password manager.')
-
-  let rating = 'Very weak'
-  if (score >= 85) rating = 'Excellent'
-  else if (score >= 70) rating = 'Strong'
-  else if (score >= 50) rating = 'Moderate'
-  else if (score >= 30) rating = 'Weak'
-
-  return { score, rating, checks, suggestions }
-}
 
 function App() {
   const [password, setPassword] = useState('')
   const [isVisible, setIsVisible] = useState(false)
+  const [length, setLength] = useState(16)
+  const [useLowercase, setUseLowercase] = useState(true)
+  const [useUppercase, setUseUppercase] = useState(true)
+  const [useNumbers, setUseNumbers] = useState(true)
+  const [useSymbols, setUseSymbols] = useState(true)
+  const [copyStatus, setCopyStatus] = useState('')
 
   const analysis = useMemo(() => analyzePassword(password), [password])
+  const charsetOptionsSelected = [
+    useLowercase,
+    useUppercase,
+    useNumbers,
+    useSymbols,
+  ].some(Boolean)
+
+  const regeneratePassword = () => {
+    setPassword(
+      generatePassword({
+        length,
+        useLowercase,
+        useUppercase,
+        useNumbers,
+        useSymbols,
+      }),
+    )
+    setCopyStatus('')
+  }
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(password)
+      setCopyStatus('Copied')
+    } catch {
+      setCopyStatus('Could not copy')
+    }
+  }
 
   return (
     <AppChrome
@@ -174,24 +80,94 @@ function App() {
             </button>
           </div>
 
+          <fieldset className="generator-controls">
+            <legend>Generator options</legend>
+            <label className="length-control" htmlFor="password-length">
+              Length
+              <input
+                id="password-length"
+                type="number"
+                min="8"
+                max="64"
+                value={length}
+                onChange={(event) =>
+                  setLength(
+                    Math.max(8, Math.min(64, Number(event.target.value) || 8)),
+                  )
+                }
+              />
+            </label>
+            <div className="charset-options">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={useLowercase}
+                  onChange={(event) => setUseLowercase(event.target.checked)}
+                />
+                Lowercase
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={useUppercase}
+                  onChange={(event) => setUseUppercase(event.target.checked)}
+                />
+                Uppercase
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={useNumbers}
+                  onChange={(event) => setUseNumbers(event.target.checked)}
+                />
+                Numbers
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={useSymbols}
+                  onChange={(event) => setUseSymbols(event.target.checked)}
+                />
+                Symbols
+              </label>
+            </div>
+          </fieldset>
+
           <div className="actions">
             <button
               type="button"
               className="button"
-              onClick={() => setPassword(generateStrongPassword(16))}
+              onClick={regeneratePassword}
+              disabled={!charsetOptionsSelected}
             >
-              Generate strong password
+              Regenerate
             </button>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => void copyPassword()}
+              disabled={!password}
+            >
+              Copy
+            </button>
+            <span className="copy-status" role="status" aria-live="polite">
+              {copyStatus}
+            </span>
           </div>
 
           <div className="strength-header">
             <h2>Strength Score</h2>
             <p>
-              <strong>{analysis.score}/100</strong> - {analysis.rating}
+              <strong>Score: {analysis.score}/100 · {analysis.rating}</strong>
             </p>
           </div>
           <div className="meter" aria-hidden="true">
-            <span style={{ width: `${analysis.score}%` }} />
+            <span
+              style={{
+                width: `${analysis.score}%`,
+                ['--meter-color' as string]: ratingToMeterColor(analysis.rating),
+              }}
+            />
           </div>
 
           <h2>Checklist</h2>
