@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { AppChrome } from './chrome/AppChrome'
+import { relatedExcept } from './chrome/relatedTools'
 import './App.css'
 
 type PasswordCheck = {
@@ -138,73 +140,79 @@ function App() {
   const analysis = useMemo(() => analyzePassword(password), [password])
 
   return (
-    <main className="container">
-      <section className="card">
-        <h1>Password Strength Lab</h1>
-        <p className="intro">
-          Test passwords locally in your browser. Nothing is sent to a server.
-        </p>
-
-        <label className="input-label" htmlFor="password">
-          Password
-        </label>
-        <div className="input-row">
-          <input
-            id="password"
-            className="password-input"
-            type={isVisible ? 'text' : 'password'}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Type or generate a password"
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => setIsVisible((state) => !state)}
-          >
-            {isVisible ? 'Hide' : 'Show'}
-          </button>
-        </div>
-
-        <div className="actions">
-          <button
-            type="button"
-            className="button"
-            onClick={() => setPassword(generateStrongPassword(16))}
-          >
-            Generate strong password
-          </button>
-        </div>
-
-        <div className="strength-header">
-          <h2>Strength Score</h2>
-          <p>
-            <strong>{analysis.score}/100</strong> - {analysis.rating}
+    <AppChrome
+      productName="Password Strength Lab"
+      githubUrl="https://github.com/openlearnia/password-strength-lab"
+      relatedTools={relatedExcept('https://password-strength-lab.openlearnia.com')}
+    >
+      <div className="container">
+        <section className="card">
+          <h1>Password Strength Lab</h1>
+          <p className="intro">
+            Test passwords locally in your browser. Nothing is sent to a server.
           </p>
-        </div>
-        <div className="meter" aria-hidden="true">
-          <span style={{ width: `${analysis.score}%` }} />
-        </div>
 
-        <h2>Checklist</h2>
-        <ul className="checklist">
-          {analysis.checks.map((check) => (
-            <li key={check.label} className={check.passed ? 'pass' : 'fail'}>
-              <span className="marker">{check.passed ? '✓' : '•'}</span>
-              {check.label}
-            </li>
-          ))}
-        </ul>
+          <label className="input-label" htmlFor="password">
+            Password
+          </label>
+          <div className="input-row">
+            <input
+              id="password"
+              className="password-input"
+              type={isVisible ? 'text' : 'password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Type or generate a password"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setIsVisible((state) => !state)}
+            >
+              {isVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
 
-        <h2>Suggestions</h2>
-        <ul className="suggestions">
-          {analysis.suggestions.map((tip) => (
-            <li key={tip}>{tip}</li>
-          ))}
-        </ul>
-      </section>
-    </main>
+          <div className="actions">
+            <button
+              type="button"
+              className="button"
+              onClick={() => setPassword(generateStrongPassword(16))}
+            >
+              Generate strong password
+            </button>
+          </div>
+
+          <div className="strength-header">
+            <h2>Strength Score</h2>
+            <p>
+              <strong>{analysis.score}/100</strong> - {analysis.rating}
+            </p>
+          </div>
+          <div className="meter" aria-hidden="true">
+            <span style={{ width: `${analysis.score}%` }} />
+          </div>
+
+          <h2>Checklist</h2>
+          <ul className="checklist">
+            {analysis.checks.map((check) => (
+              <li key={check.label} className={check.passed ? 'pass' : 'fail'}>
+                <span className="marker">{check.passed ? '✓' : '•'}</span>
+                {check.label}
+              </li>
+            ))}
+          </ul>
+
+          <h2>Suggestions</h2>
+          <ul className="suggestions">
+            {analysis.suggestions.map((tip) => (
+              <li key={tip}>{tip}</li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </AppChrome>
   )
 }
 
